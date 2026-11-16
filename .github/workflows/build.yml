@@ -49,8 +49,8 @@ jobs:
                   applicationId "com.kisisel.cinejoy"
                   minSdk 21
                   targetSdk 34
-                  versionCode 6
-                  versionName "4.0"
+                  versionCode 7
+                  versionName "4.1"
               }
               buildTypes {
                   release {
@@ -154,7 +154,7 @@ jobs:
           </manifest>
           EOF
 
-          # MainActivity.java (Doğrudan Kumanda Odaklanmalı - Fare İmleçsiz)
+          # MainActivity.java
           cat << 'EOF' > app/src/main/java/com/kisisel/cinejoy/MainActivity.java
           package com.kisisel.cinejoy;
 
@@ -289,17 +289,15 @@ jobs:
                   String langCode = LANG_CODES[idx];
                   String keywords = LANG_KEYWORDS[idx];
 
-                  // 1. Pop-up'ları gizle
-                  // 2. Tüm buton ve film kartlarına TV Kumandası odaklanma çerçevesi (Focus Ring) ekle
-                  // 3. Play butonuna basıldığında telefonu otomatik yan çevir
+                  // Oynatıcı ve Altyazı pencerelerine dokunmayan, sadece ilk açılış pop-up'ını kapatan akıllı script
                   String js = "javascript:(function() {" +
                           "if (!document.getElementById('cinejoy_tv_css')) {" +
                           "   var style = document.createElement('style');" +
                           "   style.id = 'cinejoy_tv_css';" +
                           "   style.innerHTML = '" +
-                          "       .swal2-container, .fc-consent-root, [class*=\"popup\"], [id*=\"popup\"], .modal-backdrop, [class*=\"ads-\"] { display: none !important; opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; } " +
+                          "       .swal2-container, .fc-consent-root, [class*=\"ads-\"], [id*=\"ads-\"] { display: none !important; opacity: 0 !important; pointer-events: none !important; } " +
                           "       body { overflow: auto !important; } " +
-                          "       *:focus { outline: 3.5px solid #E50914 !important; outline-offset: 3px !important; box-shadow: 0 0 18px rgba(229,9,20,0.85) !important; transition: transform 0.15s ease !important; z-index: 9999 !important; } " +
+                          "       *:focus { outline: 3.5px solid #E50914 !important; outline-offset: 3px !important; box-shadow: 0 0 18px rgba(229,9,20,0.85) !important; transition: transform 0.15s ease !important; } " +
                           "   ';" +
                           "   (document.head || document.documentElement).appendChild(style);" +
                           "}" +
@@ -307,6 +305,7 @@ jobs:
                           "window.cinejoyOptRunning = true;" +
                           "var keywords = '" + keywords + "'.split(',');" +
                           "var langCode = '" + langCode + "';" +
+                          "var bootTicks = 0;" +
                           "try { localStorage.setItem('language', langCode); localStorage.setItem('pl_lang', langCode); } catch(e){}" +
                           "document.addEventListener('click', function(e) {" +
                           "   var el = e.target.closest('button, a, [role=\"button\"]');" +
@@ -328,42 +327,40 @@ jobs:
                           "   }" +
                           "});" +
                           "setInterval(function() {" +
-                          "   var closeBtns = document.querySelectorAll('[class*=\"close\"], [id*=\"close\"], [aria-label*=\"Close\"], .swal2-close, .btn-close');" +
-                          "   closeBtns.forEach(function(b) { if(b.offsetParent !== null) { try { b.click(); } catch(e){} } });" +
-                          "   var interactives = document.querySelectorAll('a, button, input, select, [role=\"button\"], [onclick], [class*=\"card\"], [class*=\"item\"], [class*=\"poster\"], [class*=\"movie\"], [class*=\"btn\"]');" +
+                          "   var hasVideo = document.querySelector('video, iframe[src*=\"embed\"], iframe[src*=\"player\"], iframe[src*=\"vid\"], .jwplayer, .video-js');" +
+                          "   var urlPath = window.location.pathname.toLowerCase();" +
+                          "   var isWatching = hasVideo || urlPath.indexOf('/watch') !== -1 || urlPath.indexOf('/play') !== -1;" +
+                          "   if (!isWatching && bootTicks < 5) {" +
+                          "       bootTicks++;" +
+                          "       var closeBtns = document.querySelectorAll('.swal2-close, [aria-label=\"Close\"], [class*=\"popup\"] [class*=\"close\"]');" +
+                          "       closeBtns.forEach(function(b) {" +
+                          "           if (b.offsetParent !== null && !b.closest('[class*=\"player\"], [class*=\"video\"], [class*=\"sub\"], [class*=\"caption\"], [role=\"menu\"]')) {" +
+                          "               try { b.click(); } catch(e){}" +
+                          "           }" +
+                          "       });" +
+                          "   }" +
+                          "   if (isWatching && window.AndroidBridge) {" +
+                          "       window.AndroidBridge.setVideoPlaying(true);" +
+                          "   }" +
+                          "   var interactives = document.querySelectorAll('a, button, input, select, [role=\"button\"], [role=\"menuitem\"], [role=\"option\"], [onclick], [class*=\"card\"], [class*=\"poster\"]');" +
                           "   interactives.forEach(function(el) {" +
                           "       if (!el.hasAttribute('tabindex') && el.offsetParent !== null) {" +
                           "           el.setAttribute('tabindex', '0');" +
                           "       }" +
                           "   });" +
-                          "   var urlPath = window.location.pathname.toLowerCase();" +
-                          "   var hasVideo = document.querySelector('video, iframe[src*=\"embed\"], iframe[src*=\"player\"], iframe[src*=\"vid\"], .jwplayer, .video-js');" +
-                          "   if (hasVideo || urlPath.indexOf('/watch') !== -1 || urlPath.indexOf('/play') !== -1) {" +
-                          "       if (window.AndroidBridge) window.AndroidBridge.setVideoPlaying(true);" +
-                          "   }" +
                           "   var videos = document.querySelectorAll('video');" +
                           "   videos.forEach(function(v) {" +
-                          "       if (v.textTracks) {" +
+                          "       if (v.textTracks && !v.dataset.langAutoSet) {" +
                           "           for (var i = 0; i < v.textTracks.length; i++) {" +
                           "               var t = v.textTracks[i];" +
                           "               var label = (t.label || '').toLowerCase();" +
                           "               var srclang = (t.language || '').toLowerCase();" +
                           "               var match = (srclang === langCode) || keywords.some(function(k){ return label.indexOf(k) !== -1; });" +
-                          "               if (match && t.mode !== 'showing') { t.mode = 'showing'; }" +
+                          "               if (match) { t.mode = 'showing'; v.dataset.langAutoSet = 'true'; break; }" +
                           "           }" +
                           "       }" +
                           "   });" +
-                          "   var trackItems = document.querySelectorAll('[class*=\"subtitle\"] li, [class*=\"caption\"] li, [class*=\"audio\"] li, [class*=\"lang\"] li, .jw-settings-content-item, .vjs-menu-item');" +
-                          "   trackItems.forEach(function(item) {" +
-                          "       var txt = (item.innerText || '').toLowerCase();" +
-                          "       if (keywords.some(function(k){ return txt.indexOf(k) !== -1; })) {" +
-                          "           if (!item.classList.contains('active') && !item.classList.contains('jw-active-option') && !item.classList.contains('vjs-selected') && !item.dataset.autoClicked) {" +
-                          "               item.dataset.autoClicked = 'true';" +
-                          "               try { item.click(); } catch(e){}" +
-                          "           }" +
-                          "       }" +
-                          "   });" +
-                          "}, 1000);" +
+                          "}, 900);" +
                           "})()";
                   webView.evaluateJavascript(js, null);
               }
@@ -372,7 +369,6 @@ jobs:
                   webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
                   webView.addJavascriptInterface(new WebAppBridge(), "AndroidBridge");
 
-                  // Doğrudan TV Kumandası (D-Pad) odaklanmasını aktif et
                   webView.setFocusable(true);
                   webView.setFocusableInTouchMode(true);
                   webView.requestFocus();
@@ -466,7 +462,6 @@ jobs:
                           return true;
                       }
                   }
-                  // Tüm yön ve OK tuşlarını doğrudan WebView'ın kendi kumanda navigasyonuna ilet
                   return super.dispatchKeyEvent(event);
               }
 
@@ -507,5 +502,5 @@ jobs:
       - name: 5. APK Dosyasini Yukle
         uses: actions/upload-artifact@v4
         with:
-          name: Cinejoy-NativeTV-v4
+          name: Cinejoy-SubtitleFix-v5
           path: app/build/outputs/apk/debug/app-debug.apk
