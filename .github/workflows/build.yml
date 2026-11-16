@@ -9,10 +9,31 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Kaynak Kodlari Hazirla
+      - name: Kaynak Kodlari ve Logoyu Hazirla
         run: |
           mkdir -p app/src/main/java/com/kisisel/cinejoy
           mkdir -p app/src/main/res/drawable
+
+          # Python Pillow ile Özel Cinejoy İkonu ve Android TV Banner'ı Oluştur
+          python3 -m pip install Pillow
+          cat << 'EOF' > make_icons.py
+          from PIL import Image, ImageDraw
+
+          # 1. Uygulama İkonu (512x512)
+          icon = Image.new('RGBA', (512, 512), (18, 18, 24, 255))
+          draw = ImageDraw.Draw(icon)
+          draw.rounded_rectangle([24, 24, 488, 488], radius=90, outline=(229, 9, 20, 255), width=20)
+          draw.polygon([(195, 145), (195, 367), (375, 256)], fill=(229, 9, 20, 255))
+          icon.save('app/src/main/res/drawable/ic_launcher.png')
+
+          # 2. Android TV Ana Ekran Banner'ı (320x180)
+          banner = Image.new('RGBA', (320, 180), (18, 18, 24, 255))
+          bdraw = ImageDraw.Draw(banner)
+          bdraw.rounded_rectangle([8, 8, 312, 172], radius=24, outline=(229, 9, 20, 255), width=6)
+          bdraw.polygon([(130, 50), (130, 130), (205, 90)], fill=(229, 9, 20, 255))
+          banner.save('app/src/main/res/drawable/tv_banner.png')
+          EOF
+          python3 make_icons.py
 
           # settings.gradle
           echo 'rootProject.name = "Cinejoy"' > settings.gradle
@@ -37,8 +58,8 @@ jobs:
                   applicationId "com.kisisel.cinejoy"
                   minSdk 21
                   targetSdk 34
-                  versionCode 2
-                  versionName "1.1"
+                  versionCode 3
+                  versionName "2.0"
               }
               buildTypes {
                   release { minifyEnabled false }
@@ -59,9 +80,9 @@ jobs:
                   android:hardwareAccelerated="true"
                   android:label="Cinejoy"
                   android:usesCleartextTraffic="true"
-                  android:banner="@android:drawable/sym_def_app_icon"
-                  android:icon="@android:drawable/sym_def_app_icon"
-                  android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
+                  android:banner="@drawable/tv_banner"
+                  android:icon="@drawable/ic_launcher"
+                  android:theme="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen">
                   <activity
                       android:name=".MainActivity"
                       android:configChanges="orientation|screenSize|keyboardHidden|keyboard|navigation"
@@ -76,11 +97,13 @@ jobs:
           </manifest>
           EOF
 
-          # MainActivity.java (Otomatik Pop-up Silici + TV Kumandası Fare İmleci)
+          # MainActivity.java
           cat << 'EOF' > app/src/main/java/com/kisisel/cinejoy/MainActivity.java
           package com.kisisel.cinejoy;
 
           import android.app.Activity;
+          import android.app.AlertDialog;
+          import android.content.SharedPreferences;
           import android.graphics.Canvas;
           import android.graphics.Color;
           import android.graphics.Paint;
@@ -91,6 +114,7 @@ jobs:
           import android.view.View;
           import android.view.ViewGroup;
           import android.view.WindowManager;
+          import android.webkit.CookieManager;
           import android.webkit.WebChromeClient;
           import android.webkit.WebResourceRequest;
           import android.webkit.WebResourceResponse;
@@ -98,7 +122,10 @@ jobs:
           import android.webkit.WebView;
           import android.webkit.WebViewClient;
           import android.widget.FrameLayout;
+          import android.widget.Toast;
           import java.io.ByteArrayInputStream;
+          import java.util.HashMap;
+          import java.util.Map;
 
           public class MainActivity extends Activity {
               private WebView webView;
@@ -106,38 +133,61 @@ jobs:
               private WebChromeClient.CustomViewCallback customViewCallback;
               private FrameLayout fullscreenContainer;
               private View cursorView;
-              private float cursorX = 500;
-              private float cursorY = 500;
-              private final float CURSOR_STEP = 35f;
+              private float cursorX = 640;
+              private float cursorY = 360;
+              private final float CURSOR_STEP = 38f;
               private final String TARGET_URL = "https://cinejoy.pk";
+              private SharedPreferences prefs;
+
+              private final String[] LANG_NAMES = {
+                  "Türkçe (Altyazı & Dublaj)",
+                  "English (Subtitles & Audio)",
+                  "Deutsch (German)",
+                  "Español (Spanish)",
+                  "Français (French)",
+                  "Русский (Russian)",
+                  "العربية (Arabic)"
+              };
+              private final String[] LANG_CODES = {"tr", "en", "de", "es", "fr", "ru", "ar"};
+              private final String[] LANG_KEYWORDS = {
+                  "türkçe,turkce,turkish,tr,dublaj,altyazı,altyazi",
+                  "english,eng,en",
+                  "deutsch,german,deu,ger,de",
+                  "español,espanol,spanish,esp,es",
+                  "français,francais,french,fre,fr",
+                  "русский,russian,rus,ru",
+                  "العربية,arabic,ara,ar"
+              };
 
               @Override
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
                   getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+                  prefs = getSharedPreferences("CinejoyPrefs", MODE_PRIVATE);
 
                   FrameLayout rootLayout = new FrameLayout(this);
                   webView = new WebView(this);
                   fullscreenContainer = new FrameLayout(this);
                   fullscreenContainer.setVisibility(View.GONE);
 
-                  // TV Kumandası için Sanal Fare İmleci (Kırmızı Nokta)
+                  // Donanım Hızlandırmalı Sanal Fare İmleci (Sıfır Kasma)
                   cursorView = new View(this) {
                       Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
                       @Override
                       protected void onDraw(Canvas canvas) {
                           super.onDraw(canvas);
                           paint.setStyle(Paint.Style.FILL);
-                          paint.setColor(Color.argb(200, 255, 50, 50));
-                          canvas.drawCircle(cursorX, cursorY, 14f, paint);
+                          paint.setColor(Color.argb(215, 229, 9, 20));
+                          canvas.drawCircle(cursorX, cursorY, 13f, paint);
                           paint.setStyle(Paint.Style.STROKE);
                           paint.setColor(Color.WHITE);
-                          paint.setStrokeWidth(3f);
-                          canvas.drawCircle(cursorX, cursorY, 14f, paint);
+                          paint.setStrokeWidth(3.5f);
+                          canvas.drawCircle(cursorX, cursorY, 13f, paint);
                       }
                   };
                   cursorView.setClickable(false);
                   cursorView.setFocusable(false);
+                  cursorView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
 
                   rootLayout.addView(webView, new FrameLayout.LayoutParams(
                           ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
@@ -147,16 +197,55 @@ jobs:
                           ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
                   setContentView(rootLayout);
+                  setupWebView();
 
+                  // İlk açılışta dil tercihini sor, seçildiyse doğrudan aç
+                  if (!prefs.contains("selected_lang_index")) {
+                      showLanguageDialog(true);
+                  } else {
+                      loadSiteWithLanguage();
+                  }
+              }
+
+              private void showLanguageDialog(boolean isFirstLaunch) {
+                  int currentIdx = prefs.getInt("selected_lang_index", 0);
+                  AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                  builder.setTitle("Tercih Edilen Dil / Preferred Language");
+                  builder.setSingleChoiceItems(LANG_NAMES, currentIdx, (dialog, which) -> {
+                      prefs.edit().putInt("selected_lang_index", which).apply();
+                      Toast.makeText(MainActivity.this, "Dil kaydedildi: " + LANG_NAMES[which], Toast.LENGTH_SHORT).show();
+                      dialog.dismiss();
+                      loadSiteWithLanguage();
+                  });
+                  builder.setCancelable(!isFirstLaunch);
+                  builder.show();
+              }
+
+              private void loadSiteWithLanguage() {
+                  int idx = prefs.getInt("selected_lang_index", 0);
+                  String code = LANG_CODES[idx];
+                  Map<String, String> headers = new HashMap<>();
+                  headers.put("Accept-Language", code + "-" + code.toUpperCase() + "," + code + ";q=0.9,en-US;q=0.8,en;q=0.7");
+                  webView.loadUrl(TARGET_URL, headers);
+              }
+
+              private void setupWebView() {
+                  webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
                   WebSettings settings = webView.getSettings();
                   settings.setJavaScriptEnabled(true);
                   settings.setDomStorageEnabled(true);
+                  settings.setDatabaseEnabled(true);
                   settings.setMediaPlaybackRequiresUserGesture(false);
                   settings.setJavaScriptCanOpenWindowsAutomatically(false);
                   settings.setSupportMultipleWindows(false);
                   settings.setLoadWithOverviewMode(true);
                   settings.setUseWideViewPort(true);
-                  settings.setUserAgentString("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36");
+                  settings.setCacheMode(WebSettings.LOAD_DEFAULT);
+                  settings.setRenderPriority(WebSettings.RenderPriority.HIGH);
+                  settings.setUserAgentString("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36");
+
+                  CookieManager.getInstance().setAcceptCookie(true);
+                  CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true);
 
                   webView.setWebViewClient(new WebViewClient() {
                       @Override
@@ -169,7 +258,8 @@ jobs:
                       public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
                           String url = request.getUrl().toString().toLowerCase();
                           if (url.contains("doubleclick.net") || url.contains("googlesyndication") ||
-                              url.contains("popads") || url.contains("adsterra") || url.contains("propellerads")) {
+                              url.contains("popads") || url.contains("adsterra") || url.contains("propellerads") ||
+                              url.contains("onclickads") || url.contains("exoclick") || url.contains("acscdn")) {
                               return new WebResourceResponse("text/plain", "utf-8", new ByteArrayInputStream("".getBytes()));
                           }
                           return super.shouldInterceptRequest(view, request);
@@ -178,16 +268,47 @@ jobs:
                       @Override
                       public void onPageFinished(WebView view, String url) {
                           super.onPageFinished(view, url);
-                          // Her 1 saniyede bir çıkan pop-up katmanlarını ve kapatma butonlarını otomatik temizler
+                          int idx = prefs.getInt("selected_lang_index", 0);
+                          String langCode = LANG_CODES[idx];
+                          String keywords = LANG_KEYWORDS[idx];
+
+                          // Pop-up Temizleyici + Otomatik Altyazı ve Dublaj Seçici Bot
                           String js = "javascript:(function() {" +
+                                  "if (window.cinejoyOptRunning) return;" +
+                                  "window.cinejoyOptRunning = true;" +
+                                  "var keywords = '" + keywords + "'.split(',');" +
+                                  "var langCode = '" + langCode + "';" +
+                                  "try { localStorage.setItem('language', langCode); localStorage.setItem('pl_lang', langCode); } catch(e){}" +
                                   "setInterval(function() {" +
                                   "   document.dispatchEvent(new KeyboardEvent('keydown', {'key': 'Escape', 'keyCode': 27}));" +
-                                  "   var closeBtns = document.querySelectorAll('[class*=\"close\"], [id*=\"close\"], [aria-label*=\"Close\"], [aria-label*=\"Kapat\"], .swal2-close, .btn-close');" +
-                                  "   closeBtns.forEach(function(b) { try { b.click(); } catch(e){} });" +
+                                  "   var closeBtns = document.querySelectorAll('[class*=\"close\"], [id*=\"close\"], [aria-label*=\"Close\"], .swal2-close, .btn-close');" +
+                                  "   closeBtns.forEach(function(b) { if(b.offsetParent !== null) { try { b.click(); } catch(e){} } });" +
                                   "   var modals = document.querySelectorAll('[class*=\"popup\"], [id*=\"popup\"], [class*=\"modal\"], [id*=\"modal\"], .swal2-container, .fc-consent-root');" +
                                   "   modals.forEach(function(m) { m.remove(); });" +
                                   "   document.body.style.overflow = 'auto';" +
-                                  "}, 1000);" +
+                                  "   var videos = document.querySelectorAll('video');" +
+                                  "   videos.forEach(function(v) {" +
+                                  "       if (v.textTracks) {" +
+                                  "           for (var i = 0; i < v.textTracks.length; i++) {" +
+                                  "               var t = v.textTracks[i];" +
+                                  "               var label = (t.label || '').toLowerCase();" +
+                                  "               var srclang = (t.language || '').toLowerCase();" +
+                                  "               var match = (srclang === langCode) || keywords.some(function(k){ return label.indexOf(k) !== -1; });" +
+                                  "               if (match && t.mode !== 'showing') { t.mode = 'showing'; }" +
+                                  "           }" +
+                                  "       }" +
+                                  "   });" +
+                                  "   var trackItems = document.querySelectorAll('[class*=\"subtitle\"] li, [class*=\"caption\"] li, [class*=\"audio\"] li, [class*=\"lang\"] li, .jw-settings-content-item, .vjs-menu-item');" +
+                                  "   trackItems.forEach(function(item) {" +
+                                  "       var txt = (item.innerText || '').toLowerCase();" +
+                                  "       if (keywords.some(function(k){ return txt.indexOf(k) !== -1; })) {" +
+                                  "           if (!item.classList.contains('active') && !item.classList.contains('jw-active-option') && !item.classList.contains('vjs-selected') && !item.dataset.autoClicked) {" +
+                                  "               item.dataset.autoClicked = 'true';" +
+                                  "               try { item.click(); } catch(e){}" +
+                                  "           }" +
+                                  "       }" +
+                                  "   });" +
+                                  "}, 1800);" +
                                   "})()";
                           view.evaluateJavascript(js, null);
                       }
@@ -200,103 +321,4 @@ jobs:
                               callback.onCustomViewHidden();
                               return;
                           }
-                          customView = view;
-                          customViewCallback = callback;
-                          webView.setVisibility(View.GONE);
-                          cursorView.setVisibility(View.GONE);
-                          fullscreenContainer.setVisibility(View.VISIBLE);
-                          fullscreenContainer.addView(view);
-                      }
-
-                      @Override
-                      public void onHideCustomView() {
-                          if (customView == null) return;
-                          fullscreenContainer.setVisibility(View.GONE);
-                          fullscreenContainer.removeView(customView);
-                          customView = null;
-                          customViewCallback.onCustomViewHidden();
-                          webView.setVisibility(View.VISIBLE);
-                          cursorView.setVisibility(View.VISIBLE);
-                      }
-                  });
-
-                  webView.loadUrl(TARGET_URL);
-              }
-
-              private void simulateClick(float x, float y) {
-                  long downTime = SystemClock.uptimeMillis();
-                  long eventTime = SystemClock.uptimeMillis() + 50;
-                  MotionEvent downEvent = MotionEvent.obtain(downTime, downTime, MotionEvent.ACTION_DOWN, x, y, 0);
-                  MotionEvent upEvent = MotionEvent.obtain(downTime, eventTime, MotionEvent.ACTION_UP, x, y, 0);
-                  webView.dispatchTouchEvent(downEvent);
-                  webView.dispatchTouchEvent(upEvent);
-                  downEvent.recycle();
-                  upEvent.recycle();
-              }
-
-              @Override
-              public boolean dispatchKeyEvent(KeyEvent event) {
-                  if (customView == null && event.getAction() == KeyEvent.ACTION_DOWN) {
-                      int keyCode = event.getKeyCode();
-                      if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
-                          cursorY = Math.max(0, cursorY - CURSOR_STEP);
-                          if (cursorY < 100) webView.scrollBy(0, -120);
-                          cursorView.invalidate();
-                          return true;
-                      } else if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
-                          cursorY = Math.min(webView.getHeight(), cursorY + CURSOR_STEP);
-                          if (cursorY > webView.getHeight() - 100) webView.scrollBy(0, 120);
-                          cursorView.invalidate();
-                          return true;
-                      } else if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
-                          cursorX = Math.max(0, cursorX - CURSOR_STEP);
-                          cursorView.invalidate();
-                          return true;
-                      } else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
-                          cursorX = Math.min(webView.getWidth(), cursorX + CURSOR_STEP);
-                          cursorView.invalidate();
-                          return true;
-                      } else if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER) {
-                          simulateClick(cursorX, cursorY);
-                          return true;
-                      }
-                  }
-                  return super.dispatchKeyEvent(event);
-              }
-
-              @Override
-              public boolean onKeyDown(int keyCode, KeyEvent event) {
-                  if (keyCode == KeyEvent.KEYCODE_BACK) {
-                      if (customView != null) {
-                          webView.getWebChromeClient().onHideCustomView();
-                          return true;
-                      }
-                      if (webView.canGoBack()) {
-                          webView.goBack();
-                          return true;
-                      }
-                  }
-                  return super.onKeyDown(keyCode, event);
-              }
-          }
-          EOF
-
-      - name: Java 17 Kur
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: Gradle Kur
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-version: '8.2'
-
-      - name: APK Derle
-        run: gradle assembleDebug
-
-      - name: APK Dosyasini Yukle
-        uses: actions/upload-artifact@v4
-        with:
-          name: Cinejoy-TV-APK-v2
-          path: app/build/outputs/apk/debug/app-debug.apk
+                          customView =
