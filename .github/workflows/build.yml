@@ -7,50 +7,40 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - name: Kaynak Kodlari ve Logoyu Hazirla
+      - name: 1. Proje Klasorlerini ve Dosyalari Olustur
         run: |
           mkdir -p app/src/main/java/com/kisisel/cinejoy
           mkdir -p app/src/main/res/drawable
 
-          # Python Pillow ile Özel Cinejoy İkonu ve Android TV Banner'ı Oluştur
-          python3 -m pip install Pillow
-          cat << 'EOF' > make_icons.py
-          from PIL import Image, ImageDraw
-
-          # 1. Uygulama İkonu (512x512)
-          icon = Image.new('RGBA', (512, 512), (18, 18, 24, 255))
-          draw = ImageDraw.Draw(icon)
-          draw.rounded_rectangle([24, 24, 488, 488], radius=90, outline=(229, 9, 20, 255), width=20)
-          draw.polygon([(195, 145), (195, 367), (375, 256)], fill=(229, 9, 20, 255))
-          icon.save('app/src/main/res/drawable/ic_launcher.png')
-
-          # 2. Android TV Ana Ekran Banner'ı (320x180)
-          banner = Image.new('RGBA', (320, 180), (18, 18, 24, 255))
-          bdraw = ImageDraw.Draw(banner)
-          bdraw.rounded_rectangle([8, 8, 312, 172], radius=24, outline=(229, 9, 20, 255), width=6)
-          bdraw.polygon([(130, 50), (130, 130), (205, 90)], fill=(229, 9, 20, 255))
-          banner.save('app/src/main/res/drawable/tv_banner.png')
+          cat << 'EOF' > settings.gradle
+          rootProject.name = "Cinejoy"
+          include(":app")
           EOF
-          python3 make_icons.py
 
-          # settings.gradle
-          echo 'rootProject.name = "Cinejoy"' > settings.gradle
-          echo 'include(":app")' >> settings.gradle
-
-          # build.gradle (Project)
           cat << 'EOF' > build.gradle
           buildscript {
-              repositories { google(); mavenCentral() }
-              dependencies { classpath "com.android.tools.build:gradle:8.1.0" }
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+              dependencies {
+                  classpath "com.android.tools.build:gradle:8.2.0"
+              }
           }
-          allprojects { repositories { google(); mavenCentral() } }
+          allprojects {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
           EOF
 
-          # app/build.gradle
           cat << 'EOF' > app/build.gradle
-          plugins { id 'com.android.application' }
+          plugins {
+              id 'com.android.application'
+          }
           android {
               namespace 'com.kisisel.cinejoy'
               compileSdk 34
@@ -58,13 +48,36 @@ jobs:
                   applicationId "com.kisisel.cinejoy"
                   minSdk 21
                   targetSdk 34
-                  versionCode 3
-                  versionName "2.0"
+                  versionCode 4
+                  versionName "2.1"
               }
               buildTypes {
-                  release { minifyEnabled false }
+                  release {
+                      minifyEnabled false
+                  }
               }
           }
+          EOF
+
+          # Vektör Tabanlı Özel Cinejoy Logosu (Python gerektirmez, her ekranda net görünür)
+          cat << 'EOF' > app/src/main/res/drawable/ic_launcher.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="108dp"
+              android:height="108dp"
+              android:viewportWidth="108"
+              android:viewportHeight="108">
+              <path
+                  android:fillColor="#121218"
+                  android:pathData="M0,0h108v108h-108z"/>
+              <path
+                  android:strokeColor="#E50914"
+                  android:strokeWidth="6"
+                  android:pathData="M18,18 L90,18 L90,90 L18,90 Z"/>
+              <path
+                  android:fillColor="#E50914"
+                  android:pathData="M42,32 L42,76 L76,54 Z"/>
+          </vector>
           EOF
 
           # AndroidManifest.xml
@@ -80,7 +93,7 @@ jobs:
                   android:hardwareAccelerated="true"
                   android:label="Cinejoy"
                   android:usesCleartextTraffic="true"
-                  android:banner="@drawable/tv_banner"
+                  android:banner="@drawable/ic_launcher"
                   android:icon="@drawable/ic_launcher"
                   android:theme="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen">
                   <activity
@@ -170,7 +183,6 @@ jobs:
                   fullscreenContainer = new FrameLayout(this);
                   fullscreenContainer.setVisibility(View.GONE);
 
-                  // Donanım Hızlandırmalı Sanal Fare İmleci (Sıfır Kasma)
                   cursorView = new View(this) {
                       Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
                       @Override
@@ -199,7 +211,6 @@ jobs:
                   setContentView(rootLayout);
                   setupWebView();
 
-                  // İlk açılışta dil tercihini sor, seçildiyse doğrudan aç
                   if (!prefs.contains("selected_lang_index")) {
                       showLanguageDialog(true);
                   } else {
@@ -241,7 +252,6 @@ jobs:
                   settings.setLoadWithOverviewMode(true);
                   settings.setUseWideViewPort(true);
                   settings.setCacheMode(WebSettings.LOAD_DEFAULT);
-                  settings.setRenderPriority(WebSettings.RenderPriority.HIGH);
                   settings.setUserAgentString("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36");
 
                   CookieManager.getInstance().setAcceptCookie(true);
@@ -272,7 +282,6 @@ jobs:
                           String langCode = LANG_CODES[idx];
                           String keywords = LANG_KEYWORDS[idx];
 
-                          // Pop-up Temizleyici + Otomatik Altyazı ve Dublaj Seçici Bot
                           String js = "javascript:(function() {" +
                                   "if (window.cinejoyOptRunning) return;" +
                                   "window.cinejoyOptRunning = true;" +
@@ -321,4 +330,107 @@ jobs:
                               callback.onCustomViewHidden();
                               return;
                           }
-                          customView =
+                          customView = view;
+                          customViewCallback = callback;
+                          webView.setVisibility(View.GONE);
+                          cursorView.setVisibility(View.GONE);
+                          fullscreenContainer.setVisibility(View.VISIBLE);
+                          fullscreenContainer.addView(view);
+                      }
+
+                      @Override
+                      public void onHideCustomView() {
+                          if (customView == null) return;
+                          fullscreenContainer.setVisibility(View.GONE);
+                          fullscreenContainer.removeView(customView);
+                          customView = null;
+                          customViewCallback.onCustomViewHidden();
+                          webView.setVisibility(View.VISIBLE);
+                          cursorView.setVisibility(View.VISIBLE);
+                      }
+                  });
+              }
+
+              private void simulateClick(float x, float y) {
+                  long downTime = SystemClock.uptimeMillis();
+                  long eventTime = SystemClock.uptimeMillis() + 40;
+                  MotionEvent downEvent = MotionEvent.obtain(downTime, downTime, MotionEvent.ACTION_DOWN, x, y, 0);
+                  MotionEvent upEvent = MotionEvent.obtain(downTime, eventTime, MotionEvent.ACTION_UP, x, y, 0);
+                  webView.dispatchTouchEvent(downEvent);
+                  webView.dispatchTouchEvent(upEvent);
+                  downEvent.recycle();
+                  upEvent.recycle();
+              }
+
+              @Override
+              public boolean dispatchKeyEvent(KeyEvent event) {
+                  if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                      int keyCode = event.getKeyCode();
+                      if (keyCode == KeyEvent.KEYCODE_MENU) {
+                          showLanguageDialog(false);
+                          return true;
+                      }
+                      if (customView == null) {
+                          if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                              cursorY = Math.max(0, cursorY - CURSOR_STEP);
+                              if (cursorY < 110) webView.scrollBy(0, -140);
+                              cursorView.invalidate();
+                              return true;
+                          } else if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                              cursorY = Math.min(webView.getHeight(), cursorY + CURSOR_STEP);
+                              if (cursorY > webView.getHeight() - 110) webView.scrollBy(0, 140);
+                              cursorView.invalidate();
+                              return true;
+                          } else if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                              cursorX = Math.max(0, cursorX - CURSOR_STEP);
+                              cursorView.invalidate();
+                              return true;
+                          } else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                              cursorX = Math.min(webView.getWidth(), cursorX + CURSOR_STEP);
+                              cursorView.invalidate();
+                              return true;
+                          } else if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER) {
+                              simulateClick(cursorX, cursorY);
+                              return true;
+                          }
+                      }
+                  }
+                  return super.dispatchKeyEvent(event);
+              }
+
+              @Override
+              public boolean onKeyDown(int keyCode, KeyEvent event) {
+                  if (keyCode == KeyEvent.KEYCODE_BACK) {
+                      if (customView != null) {
+                          webView.getWebChromeClient().onHideCustomView();
+                          return true;
+                      }
+                      if (webView.canGoBack()) {
+                          webView.goBack();
+                          return true;
+                      }
+                  }
+                  return super.onKeyDown(keyCode, event);
+              }
+          }
+          EOF
+
+      - name: 2. Java 17 Kur
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: 3. Gradle Kur
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.4'
+
+      - name: 4. APK Derle
+        run: gradle assembleDebug
+
+      - name: 5. APK Dosyasini Yukle
+        uses: actions/upload-artifact@v4
+        with:
+          name: Cinejoy-TV-APK-Final
+          path: app/build/outputs/apk/debug/app-debug.apk
