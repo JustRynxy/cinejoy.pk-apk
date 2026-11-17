@@ -9,10 +9,10 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     steps:
-      - name: 1. Eski Kalintilari Temizle ve Yeni Projeyi Kur
+      - name: 1. Projeyi Sifirdan Olustur
         run: |
-          rm -rf app build settings.gradle build.gradle
-          mkdir -p app/src/main/java/tr/cinejoy/ultra
+          rm -rf app build settings.gradle build.gradle settings.gradle.kts build.gradle.kts
+          mkdir -p app/src/main/java/tr/cinejoy/tvmax
           mkdir -p app/src/main/res/drawable
           mkdir -p app/src/main/res/mipmap-mdpi
           mkdir -p app/src/main/res/mipmap-hdpi
@@ -28,26 +28,16 @@ jobs:
           def draw_clapper_icon(size):
               img = Image.new('RGBA', (size, size), (12, 12, 18, 255))
               d = ImageDraw.Draw(img)
-              
-              # Dış çerçeve
               pad = int(size * 0.04)
-              d.rounded_rectangle([pad, pad, size-pad, size-pad], radius=int(size*0.22), fill=(18, 18, 26, 255), outline=(0, 229, 255, 255), width=max(2, int(size*0.035)))
-              
-              # Klaket beyaz gövde
+              d.rounded_rectangle([pad, pad, size-pad, size-pad], radius=int(size*0.22), fill=(18, 18, 26, 255), outline=(0, 229, 255, 255), width=max(2, int(size*0.04)))
               bx1, by1, bx2, by2 = int(size*0.22), int(size*0.38), int(size*0.78), int(size*0.78)
               d.rounded_rectangle([bx1, by1, bx2, by2], radius=int(size*0.07), fill=(255, 255, 255, 255))
-              
-              # Klaket üst şerit
               tx1, ty1, tx2, ty2 = int(size*0.22), int(size*0.22), int(size*0.78), int(size*0.35)
-              d.rounded_rectangle([tx1, ty1, tx2, ty2], radius=int(size*0.04), fill=(229, 9, 20, 255))
-              
-              # Klaket çizgileri
+              d.rounded_rectangle([tx1, ty1, tx2, ty2], radius=int(size*0.04), fill=(0, 229, 255, 255))
               for pos in [0.30, 0.46, 0.62]:
                   x = int(size * pos)
                   w = int(size * 0.055)
-                  d.polygon([(x, ty1), (x+w, ty1), (x-int(w*0.4), ty2), (x-int(w*1.4), ty2)], fill=(255, 255, 255, 255))
-                  
-              # Play ikonu
+                  d.polygon([(x, ty1), (x+w, ty1), (x-int(w*0.4), ty2), (x-int(w*1.4), ty2)], fill=(18, 18, 26, 255))
               px1, py1 = int(size*0.43), int(size*0.47)
               px2, py2 = int(size*0.43), int(size*0.69)
               px3, py3 = int(size*0.63), int(size*0.58)
@@ -59,13 +49,11 @@ jobs:
               ic.save(f'app/src/main/res/{folder}/ic_launcher.png', 'PNG')
               ic.save(f'app/src/main/res/{folder}/ic_launcher_round.png', 'PNG')
 
-          # Adaptive Icon Foreground (432x432)
           fg = Image.new('RGBA', (432, 432), (0, 0, 0, 0))
           inner = draw_clapper_icon(260)
           fg.paste(inner, (86, 86))
           fg.save('app/src/main/res/drawable/ic_launcher_fg.png', 'PNG')
 
-          # Android TV Banner (320x180)
           banner = Image.new('RGBA', (320, 180), (14, 14, 22, 255))
           bd = ImageDraw.Draw(banner)
           bd.rounded_rectangle([4, 4, 316, 176], radius=16, outline=(0, 229, 255, 255), width=3)
@@ -105,7 +93,7 @@ jobs:
           EOF
 
           cat << 'EOF' > settings.gradle
-          rootProject.name = "CinejoyUltra"
+          rootProject.name = "CinejoyMax"
           include(":app")
           EOF
 
@@ -134,14 +122,14 @@ jobs:
               id 'com.android.application'
           }
           android {
-              namespace 'tr.cinejoy.ultra'
+              namespace 'tr.cinejoy.tvmax'
               compileSdk 34
               defaultConfig {
-                  applicationId "tr.cinejoy.ultra"
+                  applicationId "tr.cinejoy.tvmax"
                   minSdk 21
                   targetSdk 34
-                  versionCode 100
-                  versionName "10.0-ULTRA"
+                  versionCode 200
+                  versionName "20.0-MAX"
               }
               buildTypes {
                   release {
@@ -162,7 +150,7 @@ jobs:
                   android:allowBackup="true"
                   android:hardwareAccelerated="true"
                   android:largeHeap="true"
-                  android:label="Cinejoy Ultra"
+                  android:label="Cinejoy Max"
                   android:usesCleartextTraffic="true"
                   android:banner="@drawable/tv_banner"
                   android:icon="@mipmap/ic_launcher"
@@ -183,8 +171,8 @@ jobs:
           EOF
 
           # MainActivity.java
-          cat << 'EOF' > app/src/main/java/tr/cinejoy/ultra/MainActivity.java
-          package tr.cinejoy.ultra;
+          cat << 'EOF' > app/src/main/java/tr/cinejoy/tvmax/MainActivity.java
+          package tr.cinejoy.tvmax;
 
           import android.app.Activity;
           import android.app.Dialog;
@@ -248,7 +236,7 @@ jobs:
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
                   getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-                  prefs = getSharedPreferences("CinejoyUltraPrefs", MODE_PRIVATE);
+                  prefs = getSharedPreferences("CinejoyMaxPrefs", MODE_PRIVATE);
 
                   UiModeManager uiModeManager = (UiModeManager) getSystemService(UI_MODE_SERVICE);
                   PackageManager pm = getPackageManager();
@@ -264,10 +252,10 @@ jobs:
                   }
 
                   FrameLayout rootLayout = new FrameLayout(this);
-                  rootLayout.setBackgroundColor(Color.parseColor("#0B0B10"));
+                  rootLayout.setBackgroundColor(Color.parseColor("#09090D"));
 
                   webView = new WebView(this);
-                  webView.setBackgroundColor(Color.parseColor("#0B0B10"));
+                  webView.setBackgroundColor(Color.parseColor("#09090D"));
 
                   fullscreenContainer = new FrameLayout(this);
                   fullscreenContainer.setBackgroundColor(Color.BLACK);
@@ -330,7 +318,7 @@ jobs:
                   card.setBackground(cardBg);
 
                   TextView title = new TextView(this);
-                  title.setText("CINEJOY ULTRA - DİL SEÇİMİ");
+                  title.setText("CINEJOY MAX - DİL SEÇİMİ");
                   title.setTextColor(Color.parseColor("#00E5FF"));
                   title.setTextSize(20f);
                   title.setTypeface(null, Typeface.BOLD);
@@ -376,7 +364,7 @@ jobs:
                           prefs.edit().putInt("selected_lang_index", index).apply();
                           Toast.makeText(MainActivity.this, LANG_NAMES[index] + " aktif", Toast.LENGTH_SHORT).show();
                           dialog.dismiss();
-                          injectUltraScript();
+                          injectMaxTvEngine();
                       });
 
                       card.addView(btn);
@@ -399,8 +387,8 @@ jobs:
                   webView.loadUrl(TARGET_URL, headers);
               }
 
-              // Pop-up veya Altyazı Kapatmayan, Kırmızı Çerçevesiz, Turkuaz/Beyaz Hafif Odak Motoru
-              private void injectUltraScript() {
+              // Next TV İçin Özel Uzamsal Kumanda Motoru + Maksimum Hızlandırma CSS'i
+              private void injectMaxTvEngine() {
                   int idx = prefs.getInt("selected_lang_index", 0);
                   String langCode = LANG_CODES[idx];
                   String langLabel = LANG_LABELS[idx];
@@ -416,27 +404,78 @@ jobs:
                           "   localStorage.setItem('captions_language', langLabel);" +
                           "   localStorage.setItem('jwplayer.captionLabel', langLabel);" +
                           "} catch(e){}" +
-                          "if (!document.getElementById('cinejoy_ultra_css')) {" +
+                          "if (!document.getElementById('cinejoy_max_css')) {" +
                           "   var style = document.createElement('style');" +
-                          "   style.id = 'cinejoy_ultra_css';" +
+                          "   style.id = 'cinejoy_max_css';" +
                           "   style.innerHTML = '" +
-                          "       * { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; } " +
-                          "       *:focus { outline: none !important; } " +
-                          "       a:focus, button:focus, input:focus, select:focus, [role=\"button\"]:focus, [tabindex=\"0\"]:focus { " +
-                          "           outline: 3px solid #00E5FF !important; " +
-                          "           outline-offset: 3px !important; " +
-                          "           box-shadow: 0 0 15px rgba(0, 229, 255, 0.7) !important; " +
+                          "       /* TV İŞLEMCİSİNİ KASMAYAN ULTRA PERFORMANS KURALLARI */ " +
+                          "       * { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; text-shadow: none !important; box-shadow: none !important; transition: none !important; animation: none !important; } " +
+                          "       .cj-tv-focus { " +
+                          "           outline: 4px solid #00E5FF !important; " +
+                          "           outline-offset: 2px !important; " +
                           "           border-radius: 8px !important; " +
                           "       } " +
                           "   ';" +
                           "   (document.head || document.documentElement).appendChild(style);" +
                           "}" +
-                          "var els = document.querySelectorAll('a, button, [role=\"button\"], [onclick]');" +
-                          "for (var i = 0; i < els.length; i++) {" +
-                          "   if (!els[i].hasAttribute('tabindex')) els[i].setAttribute('tabindex', '0');" +
-                          "}" +
-                          "if (!window.__ultraBound) {" +
-                          "   window.__ultraBound = true;" +
+                          "/* ÖZEL UZAMSAL TV KUMANDA MOTORU (Sese asla dokunmaz, doğrudan kutular arasında gezer) */" +
+                          "window.__cjNavigate = function(dir) {" +
+                          "   var candidates = Array.from(document.querySelectorAll('a, button, input, select, [role=\"button\"], [role=\"menuitem\"], [role=\"option\"], [onclick], [class*=\"card\"], [class*=\"poster\"]')).filter(function(el) {" +
+                          "       var r = el.getBoundingClientRect();" +
+                          "       return r.width > 15 && r.height > 15 && window.getComputedStyle(el).visibility !== 'hidden' && window.getComputedStyle(el).display !== 'none';" +
+                          "   });" +
+                          "   if (candidates.length === 0) return;" +
+                          "   var current = document.querySelector('.cj-tv-focus') || document.activeElement;" +
+                          "   if (!current || current === document.body || candidates.indexOf(current) === -1) {" +
+                          "       current = candidates[0];" +
+                          "       current.classList.add('cj-tv-focus');" +
+                          "       current.focus();" +
+                          "       return;" +
+                          "   }" +
+                          "   var cr = current.getBoundingClientRect();" +
+                          "   var cx = cr.left + cr.width / 2;" +
+                          "   var cy = cr.top + cr.height / 2;" +
+                          "   var best = null;" +
+                          "   var bestScore = 999999999;" +
+                          "   for (var i = 0; i < candidates.length; i++) {" +
+                          "       var el = candidates[i];" +
+                          "       if (el === current || el.contains(current) || current.contains(el)) continue;" +
+                          "       var r = el.getBoundingClientRect();" +
+                          "       var nx = r.left + r.width / 2;" +
+                          "       var ny = r.top + r.height / 2;" +
+                          "       var dx = nx - cx;" +
+                          "       var dy = ny - cy;" +
+                          "       if (dir === 'up' && dy >= -10) continue;" +
+                          "       if (dir === 'down' && dy <= 10) continue;" +
+                          "       if (dir === 'left' && dx >= -10) continue;" +
+                          "       if (dir === 'right' && dx <= 10) continue;" +
+                          "       var dist = (dir === 'up' || dir === 'down') ? (Math.abs(dy) + Math.abs(dx) * 2.5) : (Math.abs(dx) + Math.abs(dy) * 2.5);" +
+                          "       if (dist < bestScore) {" +
+                          "           bestScore = dist;" +
+                          "           best = el;" +
+                          "       }" +
+                          "   }" +
+                          "   if (best) {" +
+                          "       current.classList.remove('cj-tv-focus');" +
+                          "       best.classList.add('cj-tv-focus');" +
+                          "       best.focus({preventScroll: true});" +
+                          "       var br = best.getBoundingClientRect();" +
+                          "       if (br.top < 80 || br.bottom > window.innerHeight - 80) {" +
+                          "           window.scrollBy(0, br.top - (window.innerHeight / 2));" +
+                          "       }" +
+                          "   } else {" +
+                          "       if (dir === 'down') window.scrollBy(0, 260);" +
+                          "       if (dir === 'up') window.scrollBy(0, -260);" +
+                          "   }" +
+                          "};" +
+                          "window.__cjClickCurrent = function() {" +
+                          "   var cur = document.querySelector('.cj-tv-focus') || document.activeElement;" +
+                          "   if (cur && cur !== document.body) {" +
+                          "       cur.click();" +
+                          "   }" +
+                          "};" +
+                          "if (!window.__maxBound) {" +
+                          "   window.__maxBound = true;" +
                           "   document.addEventListener('click', function(e) {" +
                           "       var el = e.target.closest('button, a, [role=\"button\"]');" +
                           "       if (el) {" +
@@ -458,10 +497,6 @@ jobs:
                   webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
                   webView.addJavascriptInterface(new WebAppBridge(), "AndroidBridge");
 
-                  webView.setFocusable(true);
-                  webView.setFocusableInTouchMode(true);
-                  webView.requestFocus();
-
                   WebSettings settings = webView.getSettings();
                   settings.setJavaScriptEnabled(true);
                   settings.setDomStorageEnabled(true);
@@ -473,11 +508,8 @@ jobs:
                   settings.setUseWideViewPort(true);
                   settings.setCacheMode(WebSettings.LOAD_DEFAULT);
 
-                  if (isTvDevice) {
-                      settings.setUserAgentString("Mozilla/5.0 (Linux; Android 13; SHIELD Android TV) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36");
-                  } else {
-                      settings.setUserAgentString("Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36");
-                  }
+                  // TV'de hafif mobil/tablet arayüzü yükleyerek hızı 3 katına çıkar
+                  settings.setUserAgentString("Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36");
 
                   CookieManager.getInstance().setAcceptCookie(true);
                   CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true);
@@ -503,7 +535,7 @@ jobs:
                       @Override
                       public void onPageFinished(WebView view, String url) {
                           super.onPageFinished(view, url);
-                          injectUltraScript();
+                          injectMaxTvEngine();
                           if (url.contains("/watch") || url.contains("/play")) {
                               if (!isTvDevice) {
                                   setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
@@ -555,19 +587,35 @@ jobs:
               @Override
               public boolean dispatchKeyEvent(KeyEvent event) {
                   int keyCode = event.getKeyCode();
-                  if (event.getAction() == KeyEvent.ACTION_DOWN) {
-                      if (keyCode == KeyEvent.KEYCODE_MENU) {
-                          showLanguageModal(false);
+
+                  // KRİTİK KİLİT: TV'de Yukarı/Aşağı/Sağ/Sol tuşlarının WebView'a ve Video Oynatıcısına gitmesini
+                  // RETURN TRUE ile %100 engelliyoruz! Oynatıcı artık bu tuşları asla göremez ve sesi kısamaz!
+                  if (isTvDevice && customView == null) {
+                      if (keyCode == KeyEvent.KEYCODE_DPAD_UP || keyCode == KeyEvent.KEYCODE_DPAD_DOWN ||
+                          keyCode == KeyEvent.KEYCODE_DPAD_LEFT || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT ||
+                          keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER) {
+
+                          if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                              if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                                  webView.evaluateJavascript("if(window.__cjNavigate) window.__cjNavigate('up');", null);
+                              } else if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                                  webView.evaluateJavascript("if(window.__cjNavigate) window.__cjNavigate('down');", null);
+                              } else if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                                  webView.evaluateJavascript("if(window.__cjNavigate) window.__cjNavigate('left');", null);
+                              } else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                                  webView.evaluateJavascript("if(window.__cjNavigate) window.__cjNavigate('right');", null);
+                              } else if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER) {
+                                  webView.evaluateJavascript("if(window.__cjClickCurrent) window.__cjClickCurrent();", null);
+                              }
+                          }
+                          // Tuşu burada yutuyoruz, WebView'ın ses kısma kısayoluna ASLA ulaşamaz:
                           return true;
                       }
-                      // Kumanda Aşağı/Yukarı tuşunu oynatıcının ses kısmasına göndermeden doğrudan sayfayı/odağı kaydır
-                      if (isTvDevice && customView == null) {
-                          if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
-                              webView.evaluateJavascript("window.scrollBy({top: 220, behavior: 'smooth'});", null);
-                          } else if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
-                              webView.evaluateJavascript("window.scrollBy({top: -220, behavior: 'smooth'});", null);
-                          }
-                      }
+                  }
+
+                  if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_MENU) {
+                      showLanguageModal(false);
+                      return true;
                   }
                   return super.dispatchKeyEvent(event);
               }
@@ -609,5 +657,5 @@ jobs:
       - name: 5. APK Dosyasini Yukle
         uses: actions/upload-artifact@v4
         with:
-          name: Cinejoy-Ultra-v10
+          name: Cinejoy-Max-v20
           path: app/build/outputs/apk/debug/app-debug.apk
