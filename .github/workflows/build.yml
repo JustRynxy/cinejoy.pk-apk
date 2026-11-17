@@ -9,10 +9,10 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     steps:
-      - name: 1. Projeyi ve Birebir Yesil Klaket Logosunu Olustur
+      - name: 1. Projeyi ve Orijinal Yesil Maskot Logosunu Olustur
         run: |
           rm -rf app build settings.gradle build.gradle settings.gradle.kts build.gradle.kts
-          mkdir -p app/src/main/java/tr/cinejoy/original
+          mkdir -p app/src/main/java/tr/cinejoy/nextbox
           mkdir -p app/src/main/res/drawable
           mkdir -p app/src/main/res/mipmap-mdpi
           mkdir -p app/src/main/res/mipmap-hdpi
@@ -26,7 +26,6 @@ jobs:
           from PIL import Image, ImageDraw
 
           def draw_exact_cinejoy_mascot(target_size, with_dark_bg=True):
-              # Pürüzsüz (Anti-aliased) çizim için 4x büyük tuvalde çizip küçültüyoruz
               S = 800
               bg_color = (14, 16, 15, 255) if with_dark_bg else (0, 0, 0, 0)
               img = Image.new('RGBA', (S, S), bg_color)
@@ -34,45 +33,34 @@ jobs:
 
               black = (15, 15, 15, 255)
               white = (255, 255, 255, 255)
-              neon_green = (146, 255, 78, 255) # #92FF4E birebir görseldeki yeşil
+              neon_green = (146, 255, 78, 255)
 
-              # 1. Yeşil Alt Gövde (Yuvarlatılmış Dikdörtgen + Kalın Siyah Kontur)
               bx1, by1, bx2, by2 = 85, 290, 715, 735
               d.rounded_rectangle([bx1, by1, bx2, by2], radius=105, fill=neon_green, outline=black, width=44)
-
-              # Gövde içindeki hafif açık yeşil üst parlama katmanı (görseldeki gibi)
               d.rounded_rectangle([bx1+24, by1+24, bx2-24, by2-48], radius=80, fill=(154, 255, 92, 255))
 
-              # 2. Üst Sol Klaket Parçası (Yuvarlatılmış Üçgenimsi Kutu)
               p1 = [(105, 145), (275, 105), (200, 295), (125, 295)]
               d.polygon(p1, fill=white)
               d.line(p1 + [p1[0]], fill=black, width=42, joint="curve")
 
-              # 3. Üst Orta Klaket Parçası (Eğik Paralelkenar)
               p2 = [(395, 55), (535, 35), (415, 295), (265, 295)]
               d.polygon(p2, fill=white)
               d.line(p2 + [p2[0]], fill=black, width=42, joint="curve")
 
-              # 4. Üst Sağ Klaket Parçası
               p3 = [(645, 75), (725, 235), (695, 285), (535, 285)]
               d.polygon(p3, fill=white)
               d.line(p3 + [p3[0]], fill=black, width=42, joint="curve")
 
-              # 5. Sol Göz (Siyah Daire)
               ex, ey, er = 265, 495, 64
               d.ellipse([ex-er, ey-er, ex+er, ey+er], fill=black)
 
-              # 6. Sağ Göz Kırpma (< Şeklinde Kalın Siyah Çizgi)
               wink = [(525, 315), (445, 455), (575, 435)]
               d.line(wink, fill=black, width=44, joint="curve")
-              # Çizgi uçlarını yuvarlat
               for wx, wy in wink:
                   d.ellipse([wx-21, wy-21, wx+21, wy+21], fill=black)
 
-              # 7. Gülümseyen Ağız (Kalın Siyah Yay)
               mouth_box = [245, 430, 625, 695]
               d.arc(mouth_box, start=12, end=142, fill=black, width=44)
-              # Ağız uçlarını yuvarlat
               d.ellipse([272-20, 645-20, 272+20, 645+20], fill=black)
               d.ellipse([612-20, 585-20, 612+20, 585+20], fill=black)
 
@@ -83,13 +71,11 @@ jobs:
               ic.save(f'app/src/main/res/{folder}/ic_launcher.png', 'PNG')
               ic.save(f'app/src/main/res/{folder}/ic_launcher_round.png', 'PNG')
 
-          # Adaptive Icon Foreground (432x432)
           fg = Image.new('RGBA', (432, 432), (0, 0, 0, 0))
           mascot = draw_exact_cinejoy_mascot(276, with_dark_bg=False)
           fg.paste(mascot, (78, 78), mascot)
           fg.save('app/src/main/res/drawable/ic_launcher_fg.png', 'PNG')
 
-          # Android TV Ana Ekran Banner'ı (320x180)
           banner = Image.new('RGBA', (320, 180), (14, 16, 15, 255))
           bd = ImageDraw.Draw(banner)
           bd.rounded_rectangle([4, 4, 316, 176], radius=18, outline=(146, 255, 78, 255), width=4)
@@ -129,7 +115,7 @@ jobs:
           EOF
 
           cat << 'EOF' > settings.gradle
-          rootProject.name = "Cinejoy"
+          rootProject.name = "CinejoyNextBox"
           include(":app")
           EOF
 
@@ -158,14 +144,14 @@ jobs:
               id 'com.android.application'
           }
           android {
-              namespace 'tr.cinejoy.original'
+              namespace 'tr.cinejoy.nextbox'
               compileSdk 34
               defaultConfig {
-                  applicationId "tr.cinejoy.original"
+                  applicationId "tr.cinejoy.nextbox"
                   minSdk 21
                   targetSdk 34
-                  versionCode 400
-                  versionName "40.0-FINAL"
+                  versionCode 500
+                  versionName "50.0-NEXTBOX"
               }
               buildTypes {
                   release {
@@ -207,8 +193,8 @@ jobs:
           EOF
 
           # MainActivity.java
-          cat << 'EOF' > app/src/main/java/tr/cinejoy/original/MainActivity.java
-          package tr.cinejoy.original;
+          cat << 'EOF' > app/src/main/java/tr/cinejoy/nextbox/MainActivity.java
+          package tr.cinejoy.nextbox;
 
           import android.app.Activity;
           import android.app.Dialog;
@@ -217,6 +203,7 @@ jobs:
           import android.content.pm.ActivityInfo;
           import android.content.pm.PackageManager;
           import android.content.res.Configuration;
+          import android.graphics.Bitmap;
           import android.graphics.Color;
           import android.graphics.Typeface;
           import android.graphics.drawable.ColorDrawable;
@@ -257,6 +244,7 @@ jobs:
               private final String TARGET_URL = "https://cinejoy.pk";
               private SharedPreferences prefs;
               private boolean isTvDevice = false;
+              private long lastBackPressTime = 0;
 
               private final String[] LANG_NAMES = {
                   "🇹🇷   Türkçe  (Altyazı & Dublaj)",
@@ -267,12 +255,19 @@ jobs:
               };
               private final String[] LANG_CODES = {"tr", "en", "de", "es", "fr"};
               private final String[] LANG_LABELS = {"Turkish", "English", "German", "Spanish", "French"};
+              private final String[] LANG_MATCHERS = {
+                  "turkish,türkçe,turkce,tur,tr,dublaj,altyazı,altyazi",
+                  "english,eng,en",
+                  "german,deutsch,deu,ger,de",
+                  "spanish,español,espanol,esp,es",
+                  "french,français,francais,fre,fr"
+              };
 
               @Override
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
                   getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-                  prefs = getSharedPreferences("CinejoyOrigPrefs", MODE_PRIVATE);
+                  prefs = getSharedPreferences("CinejoyNextBoxPrefs", MODE_PRIVATE);
 
                   UiModeManager uiModeManager = (UiModeManager) getSystemService(UI_MODE_SERVICE);
                   PackageManager pm = getPackageManager();
@@ -329,6 +324,20 @@ jobs:
                               } else if (customView == null) {
                                   setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_USER);
                               }
+                          }
+                      });
+                  }
+
+                  // SPA Geçmişi bittiğinde (gerçekten ana sayfadaysa) çıkış uyarısı ver
+                  @JavascriptInterface
+                  public void onReachedRootPage() {
+                      runOnUiThread(() -> {
+                          long now = System.currentTimeMillis();
+                          if (now - lastBackPressTime < 2500) {
+                              finish();
+                          } else {
+                              lastBackPressTime = now;
+                              Toast.makeText(MainActivity.this, "Uygulamadan çıkmak için Geri tuşuna tekrar basın", Toast.LENGTH_SHORT).show();
                           }
                       });
                   }
@@ -396,16 +405,15 @@ jobs:
                       });
 
                       LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                              isTvDevice ? 680 : ViewGroup.LayoutParams.MATCH_PARENT,
-                              ViewGroup.LayoutParams.WRAP_CONTENT);
+                              640, ViewGroup.LayoutParams.WRAP_CONTENT);
                       lp.setMargins(0, 8, 0, 8);
                       btn.setLayoutParams(lp);
 
                       btn.setOnClickListener(v -> {
                           prefs.edit().putInt("selected_lang_index", index).apply();
-                          Toast.makeText(MainActivity.this, LANG_NAMES[index] + " seçildi", Toast.LENGTH_SHORT).show();
+                          Toast.makeText(MainActivity.this, LANG_NAMES[index] + " aktif edildi", Toast.LENGTH_SHORT).show();
                           dialog.dismiss();
-                          injectLightweightEngine();
+                          injectNextBoxEngine();
                       });
 
                       card.addView(btn);
@@ -428,59 +436,214 @@ jobs:
                   webView.loadUrl(TARGET_URL, headers);
               }
 
-              // Donma Yapmayan, Altyazı Menüsünü Serbest Kaydıran ve Iframe Dili Enjekte Eden Hafif Motor
-              private void injectLightweightEngine() {
+              private void injectNextBoxEngine() {
                   int idx = prefs.getInt("selected_lang_index", 0);
                   String langCode = LANG_CODES[idx];
                   String langLabel = LANG_LABELS[idx];
+                  String matchers = LANG_MATCHERS[idx];
 
                   String js = "javascript:(function() {" +
-                          "var langCode = '" + langCode + "';" +
-                          "var langLabel = '" + langLabel + "';" +
+                          "window.__cjCode = '" + langCode + "';" +
+                          "window.__cjLabel = '" + langLabel + "';" +
+                          "window.__cjMatchers = '" + matchers + "'.split(',');" +
                           "try {" +
-                          "   localStorage.setItem('language', langCode);" +
-                          "   localStorage.setItem('lang', langCode);" +
-                          "   localStorage.setItem('pl_lang', langCode);" +
-                          "   localStorage.setItem('subtitle_language', langLabel);" +
-                          "   localStorage.setItem('captions_language', langLabel);" +
-                          "   localStorage.setItem('jwplayer.captionLabel', langLabel);" +
+                          "   localStorage.setItem('language', window.__cjCode);" +
+                          "   localStorage.setItem('lang', window.__cjCode);" +
+                          "   localStorage.setItem('pl_lang', window.__cjCode);" +
+                          "   localStorage.setItem('subtitle_language', window.__cjLabel);" +
+                          "   localStorage.setItem('captions_language', window.__cjLabel);" +
+                          "   localStorage.setItem('jwplayer.captionLabel', window.__cjLabel);" +
                           "} catch(e){}" +
-                          "if (!document.getElementById('cinejoy_final_css')) {" +
+                          "if (!document.getElementById('cinejoy_nextbox_css')) {" +
                           "   var style = document.createElement('style');" +
-                          "   style.id = 'cinejoy_final_css';" +
+                          "   style.id = 'cinejoy_nextbox_css';" +
                           "   style.innerHTML = '" +
+                          "       /* NEXT TV KUTUSUNDA DONMAYI SIFIRLAYAN ULTRA HAFİF CSS */ " +
                           "       *, *::before, *::after { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; filter: none !important; box-shadow: none !important; text-shadow: none !important; transition: none !important; animation: none !important; } " +
-                          "       *:focus { outline: 3.5px solid #92FF4E !important; outline-offset: 2px !important; border-radius: 6px !important; } " +
+                          "       .cj-focus { " +
+                          "           outline: 4px solid #92FF4E !important; " +
+                          "           outline-offset: 3px !important; " +
+                          "           border-radius: 8px !important; " +
+                          "       } " +
                           "   ';" +
                           "   (document.head || document.documentElement).appendChild(style);" +
                           "}" +
-                          "/* Sayfadaki kartları ve altyazı seçeneklerini doğal kumanda odaklanmasına aç */" +
-                          "var els = document.querySelectorAll('a, button, [role=\"button\"], [role=\"menuitem\"], [role=\"menuitemradio\"], [role=\"option\"], [onclick]');" +
-                          "for (var i = 0; i < els.length; i++) {" +
-                          "   if (!els[i].hasAttribute('tabindex')) els[i].setAttribute('tabindex', '0');" +
-                          "}" +
-                          "/* Gömülü video oynatıcıya (iframe) seçilen dili otomatik ekle */" +
-                          "var iframes = document.querySelectorAll('iframe');" +
-                          "for (var j = 0; j < iframes.length; j++) {" +
-                          "   var src = iframes[j].src || '';" +
-                          "   if (src.length > 10 && src.indexOf('cinejoy.pk') === -1 && src.indexOf('ds_lang=') === -1) {" +
-                          "       var sep = src.indexOf('?') === -1 ? '?' : '&';" +
-                          "       iframes[j].src = src + sep + 'ds_lang=' + langCode + '&sub=' + langCode + '&lang=' + langCode + '&caption=' + langLabel;" +
+                          "/* Oynatıcının kendi kendine sesi kısmasını kilitle (Her zaman %100 ses) */" +
+                          "function lockVideoVolumeAndSubs() {" +
+                          "   var m = window.__cjMatchers || [];" +
+                          "   var code = window.__cjCode || 'tr';" +
+                          "   var vids = document.querySelectorAll('video');" +
+                          "   for (var i = 0; i < vids.length; i++) {" +
+                          "       var v = vids[i];" +
+                          "       if (v.volume < 1.0) v.volume = 1.0;" +
+                          "       v.muted = false;" +
+                          "       if (!v.dataset.volLocked) {" +
+                          "           v.dataset.volLocked = '1';" +
+                          "           v.addEventListener('volumechange', function(){ if(this.volume < 1.0) this.volume = 1.0; });" +
+                          "       }" +
+                          "       if (v.textTracks) {" +
+                          "           for (var j = 0; j < v.textTracks.length; j++) {" +
+                          "               var t = v.textTracks[j];" +
+                          "               var lbl = (t.label || '').toLowerCase();" +
+                          "               var lng = (t.language || '').toLowerCase();" +
+                          "               if (lng.indexOf(code) === 0 || m.some(function(k){ return lbl.indexOf(k) !== -1; })) {" +
+                          "                   t.mode = 'showing';" +
+                          "               }" +
+                          "           }" +
+                          "       }" +
+                          "   }" +
+                          "   var iframes = document.querySelectorAll('iframe');" +
+                          "   for (var f = 0; f < iframes.length; f++) {" +
+                          "       var src = iframes[f].src || '';" +
+                          "       if (src.length > 10 && src.indexOf('cinejoy.pk') === -1 && src.indexOf('ds_lang=') === -1) {" +
+                          "           var sep = src.indexOf('?') === -1 ? '?' : '&';" +
+                          "           iframes[f].src = src + sep + 'ds_lang=' + code + '&sub=' + code + '&lang=' + code + '&caption=' + window.__cjLabel;" +
+                          "       }" +
+                          "   }" +
+                          "   /* Oynatıcı menüsünde Türkçe altyazı/dublaj seçeneği varsa otomatik seç */" +
+                          "   var opts = document.querySelectorAll('li, button, [role=\"menuitemradio\"], [role=\"option\"], .jw-settings-content-item, .vjs-menu-item');" +
+                          "   for (var k = 0; k < opts.length; k++) {" +
+                          "       var el = opts[k];" +
+                          "       var txt = (el.innerText || el.textContent || '').toLowerCase().trim();" +
+                          "       if (txt.length >= 2 && txt.length <= 25 && m.some(function(w){ return txt === w || txt.indexOf(w) !== -1; })) {" +
+                          "           if (!el.dataset.cjPicked) {" +
+                          "               el.dataset.cjPicked = '1';" +
+                          "               try { el.click(); } catch(e){}" +
+                          "               break;" +
+                          "           }" +
+                          "       }" +
                           "   }" +
                           "}" +
-                          "if (!window.__finalBound) {" +
-                          "   window.__finalBound = true;" +
-                          "   document.addEventListener('click', function(e) {" +
-                          "       var el = e.target.closest('button, a, [role=\"button\"]');" +
-                          "       if (el) {" +
-                          "           var txt = (el.innerText || el.getAttribute('aria-label') || '').toLowerCase();" +
-                          "           if (txt.indexOf('play') !== -1 || txt.indexOf('watch') !== -1) {" +
-                          "               if (window.AndroidBridge) window.AndroidBridge.onVideoState(true);" +
+                          "/* Altyazı listesi gibi iç kaydırılabilir pencereleri bul */" +
+                          "function getScrollContainer(node) {" +
+                          "   while (node && node !== document.body && node !== document.documentElement) {" +
+                          "       var st = window.getComputedStyle(node);" +
+                          "       if ((st.overflowY === 'auto' || st.overflowY === 'scroll') && node.scrollHeight > node.clientHeight + 8) {" +
+                          "           return node;" +
+                          "       }" +
+                          "       node = node.parentElement;" +
+                          "   }" +
+                          "   return window;" +
+                          "}" +
+                          "/* SADECE FİLM AFİŞLERİ, DİZİ BÖLÜMLERİ, PLAY TUŞU, NAVİGASYON VE ALTYAZI SEÇENEKLERİNE GİT (Like/Puan/Yorumları Atla) */" +
+                          "window.__cjCache = [];" +
+                          "window.__cjCacheTs = 0;" +
+                          "function getSmartTargets() {" +
+                          "   var now = Date.now();" +
+                          "   if (window.__cjCache.length > 0 && now - window.__cjCacheTs < 1000) return window.__cjCache;" +
+                          "   var raw = document.querySelectorAll('a, button, input, select, [role=\"button\"], [role=\"menuitem\"], [role=\"menuitemradio\"], [role=\"option\"], [onclick], [class*=\"episode\"], [class*=\"season\"], [class*=\"card\"], [class*=\"poster\"]');" +
+                          "   var valid = [];" +
+                          "   for (var i = 0; i < raw.length; i++) {" +
+                          "       var el = raw[i];" +
+                          "       var r = el.getBoundingClientRect();" +
+                          "       if (r.width < 22 || r.height < 22 || r.bottom < 0 || r.top > window.innerHeight) continue;" +
+                          "       var st = window.getComputedStyle(el);" +
+                          "       if (st.display === 'none' || st.visibility === 'hidden' || st.opacity === '0') continue;" +
+                          "       var txt = (el.innerText || el.getAttribute('aria-label') || el.getAttribute('title') || '').toLowerCase();" +
+                          "       var cls = (el.className && typeof el.className === 'string' ? el.className : '').toLowerCase();" +
+                          "       /* Gereksiz Like, Dislike, Share, Rating, Favori, Yorum butonlarını filtrele */" +
+                          "       if (txt.indexOf('like') !== -1 || txt.indexOf('share') !== -1 || txt.indexOf('report') !== -1 || txt.indexOf('trailer') !== -1 || cls.indexOf('rating') !== -1 || cls.indexOf('like') !== -1 || cls.indexOf('share') !== -1 || cls.indexOf('social') !== -1 || cls.indexOf('bookmark') !== -1) {" +
+                          "           continue;" +
+                          "       }" +
+                          "       valid.push({el: el, r: r});" +
+                          "   }" +
+                          "   window.__cjCache = valid;" +
+                          "   window.__cjCacheTs = now;" +
+                          "   return valid;" +
+                          "}" +
+                          "window.__cjMove = function(dir) {" +
+                          "   lockVideoVolumeAndSubs();" +
+                          "   var list = getSmartTargets();" +
+                          "   var cur = document.querySelector('.cj-focus');" +
+                          "   if (!cur || !document.body.contains(cur)) {" +
+                          "       if (list.length > 0) {" +
+                          "           list[0].el.classList.add('cj-focus');" +
+                          "       }" +
+                          "       return;" +
+                          "   }" +
+                          "   var cr = cur.getBoundingClientRect();" +
+                          "   var cx = cr.left + cr.width / 2;" +
+                          "   var cy = cr.top + cr.height / 2;" +
+                          "   var best = null;" +
+                          "   var bestScore = 999999999;" +
+                          "   for (var i = 0; i < list.length; i++) {" +
+                          "       var item = list[i];" +
+                          "       var el = item.el;" +
+                          "       if (el === cur || el.contains(cur) || cur.contains(el)) continue;" +
+                          "       var r = item.r;" +
+                          "       var nx = r.left + r.width / 2;" +
+                          "       var ny = r.top + r.height / 2;" +
+                          "       var dx = nx - cx;" +
+                          "       var dy = ny - cy;" +
+                          "       if (dir === 'up' && dy >= -8) continue;" +
+                          "       if (dir === 'down' && dy <= 8) continue;" +
+                          "       if (dir === 'left' && dx >= -8) continue;" +
+                          "       if (dir === 'right' && dx <= 8) continue;" +
+                          "       var dist = (dir === 'up' || dir === 'down') ? (Math.abs(dy) + Math.abs(dx) * 2.0) : (Math.abs(dx) + Math.abs(dy) * 2.0);" +
+                          "       if (dist < bestScore) {" +
+                          "           bestScore = dist;" +
+                          "           best = el;" +
+                          "       }" +
+                          "   }" +
+                          "   var scroller = getScrollContainer(cur);" +
+                          "   if (best) {" +
+                          "       cur.classList.remove('cj-focus');" +
+                          "       best.classList.add('cj-focus');" +
+                          "       var targetScroller = getScrollContainer(best);" +
+                          "       if (targetScroller !== window) {" +
+                          "           best.scrollIntoView({block: 'nearest'});" +
+                          "       } else {" +
+                          "           var br = best.getBoundingClientRect();" +
+                          "           if (br.top < 80 || br.bottom > window.innerHeight - 80) {" +
+                          "               window.scrollBy(0, br.top - (window.innerHeight / 2));" +
+                          "               window.__cjCacheTs = 0;" +
                           "           }" +
+                          "       }" +
+                          "   } else {" +
+                          "       var step = (dir === 'down') ? 220 : (dir === 'up' ? -220 : 0);" +
+                          "       if (step !== 0) {" +
+                          "           if (scroller !== window) {" +
+                          "               scroller.scrollTop += step;" +
+                          "           } else {" +
+                          "               window.scrollBy(0, step);" +
+                          "           }" +
+                          "           window.__cjCacheTs = 0;" +
+                          "       }" +
+                          "   }" +
+                          "};" +
+                          "window.__cjFireClick = function() {" +
+                          "   window.__cjCacheTs = 0;" +
+                          "   var cur = document.querySelector('.cj-focus');" +
+                          "   if (cur) {" +
+                          "       cur.click();" +
+                          "       setTimeout(lockVideoVolumeAndSubs, 700);" +
+                          "   }" +
+                          "};" +
+                          "/* GERİ TUŞU: Uygulamayı kapatmak yerine bir önceki sayfaya döner */" +
+                          "window.__cjGoBack = function() {" +
+                          "   window.__cjCacheTs = 0;" +
+                          "   var path = window.location.pathname;" +
+                          "   if (path && path !== '/' && path !== '/home') {" +
+                          "       window.history.back();" +
+                          "   } else if (window.history.length > 1) {" +
+                          "       window.history.back();" +
+                          "   } else {" +
+                          "       if (window.AndroidBridge) window.AndroidBridge.onReachedRootPage();" +
+                          "   }" +
+                          "};" +
+                          "if (!window.__nextBoxBound) {" +
+                          "   window.__nextBoxBound = true;" +
+                          "   /* Sayfa içi Yukarı/Aşağı ok tuşlarının oynatıcıya gitmesini tamamen blokla */" +
+                          "   window.addEventListener('keydown', function(e) {" +
+                          "       if (e.keyCode >= 37 && e.keyCode <= 40) {" +
+                          "           e.stopImmediatePropagation();" +
+                          "           e.preventDefault();" +
                           "       }" +
                           "   }, true);" +
                           "   document.addEventListener('play', function() {" +
                           "       if (window.AndroidBridge) window.AndroidBridge.onVideoState(true);" +
+                          "       setTimeout(lockVideoVolumeAndSubs, 500);" +
+                          "       setTimeout(lockVideoVolumeAndSubs, 2000);" +
                           "   }, true);" +
                           "}" +
                           "})()";
@@ -490,10 +653,6 @@ jobs:
               private void setupWebView() {
                   webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
                   webView.addJavascriptInterface(new WebAppBridge(), "AndroidBridge");
-
-                  webView.setFocusable(true);
-                  webView.setFocusableInTouchMode(true);
-                  webView.requestFocus();
 
                   WebSettings settings = webView.getSettings();
                   settings.setJavaScriptEnabled(true);
@@ -532,9 +691,15 @@ jobs:
                       }
 
                       @Override
+                      public void onPageStarted(WebView view, String url, Bitmap favicon) {
+                          super.onPageStarted(view, url, favicon);
+                          injectNextBoxEngine();
+                      }
+
+                      @Override
                       public void onPageFinished(WebView view, String url) {
                           super.onPageFinished(view, url);
-                          injectLightweightEngine();
+                          injectNextBoxEngine();
                           if (url.contains("/watch") || url.contains("/play")) {
                               if (!isTvDevice) {
                                   setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
@@ -586,29 +751,55 @@ jobs:
               @Override
               public boolean dispatchKeyEvent(KeyEvent event) {
                   int keyCode = event.getKeyCode();
+
+                  // NEXT TV KUTUSU İÇİN KOŞULSUZ KUMANDA KİLİDİ (isTvDevice şartı olmadan her kumanda tuşunu yakalar)
+                  if (customView == null) {
+                      if (keyCode == KeyEvent.KEYCODE_DPAD_UP || keyCode == KeyEvent.KEYCODE_DPAD_DOWN ||
+                          keyCode == KeyEvent.KEYCODE_DPAD_LEFT || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT ||
+                          keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER) {
+
+                          if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                              if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                                  webView.evaluateJavascript("if(window.__cjMove) window.__cjMove('up');", null);
+                              } else if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                                  webView.evaluateJavascript("if(window.__cjMove) window.__cjMove('down');", null);
+                              } else if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                                  webView.evaluateJavascript("if(window.__cjMove) window.__cjMove('left');", null);
+                              } else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                                  webView.evaluateJavascript("if(window.__cjMove) window.__cjMove('right');", null);
+                              } else if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER) {
+                                  webView.evaluateJavascript("if(window.__cjFireClick) window.__cjFireClick();", null);
+                              }
+                          }
+                          // RETURN TRUE: Tuş WebView'a ve oynatıcıya ASLA gitmez, ses açıp kısamaz!
+                          return true;
+                      }
+                  }
+
+                  // GERİ TUŞU: Uygulamayı kapatmak yerine bir önceki sayfaya gider
+                  if (keyCode == KeyEvent.KEYCODE_BACK) {
+                      if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                          if (customView != null) {
+                              webView.getWebChromeClient().onHideCustomView();
+                              return true;
+                          }
+                          if (!isTvDevice) {
+                              setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_USER);
+                          }
+                          if (webView.canGoBack()) {
+                              webView.goBack();
+                          } else {
+                              webView.evaluateJavascript("if(window.__cjGoBack) window.__cjGoBack();", null);
+                          }
+                      }
+                      return true;
+                  }
+
                   if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_MENU) {
                       showLanguageModal(false);
                       return true;
                   }
                   return super.dispatchKeyEvent(event);
-              }
-
-              @Override
-              public boolean onKeyDown(int keyCode, KeyEvent event) {
-                  if (keyCode == KeyEvent.KEYCODE_BACK) {
-                      if (customView != null) {
-                          webView.getWebChromeClient().onHideCustomView();
-                          return true;
-                      }
-                      if (!isTvDevice) {
-                          setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_USER);
-                      }
-                      if (webView.canGoBack()) {
-                          webView.goBack();
-                          return true;
-                      }
-                  }
-                  return super.onKeyDown(keyCode, event);
               }
           }
           EOF
@@ -630,5 +821,5 @@ jobs:
       - name: 5. APK Dosyasini Yukle
         uses: actions/upload-artifact@v4
         with:
-          name: Cinejoy-OriginalLogo-v40
+          name: Cinejoy-NextBox-v50
           path: app/build/outputs/apk/debug/app-debug.apk
